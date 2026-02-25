@@ -1,0 +1,16 @@
+version: '3.9'
+
+services:
+  backend:
+    build: ./backend
+    container_name: fallout-backend
+    ports:
+      - "5001:5001"
+
+  frontend:
+    build: ./frontend
+    container_name: fallout-frontend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - backend

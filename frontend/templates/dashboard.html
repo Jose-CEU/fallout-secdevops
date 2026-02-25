@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>
+        {% if role == "admin" %}
+            Vault Control Panel - Overseer
+        {% else %}
+            Vault Terminal - Dweller
+        {% endif %}
+    </title>
+</head>
+
+{% if role == "admin" %}
+<body style="background-color:#003366; color:white;">
+{% else %}
+<body style="background-color:#003300; color:white;">
+{% endif %}
+
+    <h1>Welcome {{ user }}</h1>
+    <h2>Role: {{ role }}</h2>
+
+    <hr>
+
+    <p><strong>Vault Status:</strong> {{ data.vault_status }}</p>
+    <p><strong>Radiation Level:</strong> {{ data.radiation_level }}</p>
+
+    <br>
+    <a href="{{ url_for('logout') }}">Logout</a>
+
+</body>
+</html>
