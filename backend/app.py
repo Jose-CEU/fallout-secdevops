@@ -12,8 +12,15 @@ def get_db_connection():
         database=os.environ.get("DB_NAME")
     )
 
+# ✅ HEALTH CHECK (NO DB)
 @app.route("/api/status", methods=["GET"])
 def status():
+    return jsonify({"status": "ok"}), 200
+
+
+# ✅ ENDPOINT REAL CON DB
+@app.route("/api/vault", methods=["GET"])
+def vault_status():
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -34,6 +41,7 @@ def status():
         "vault_status": result[0],
         "radiation_level": result[1]
     })
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
