@@ -2,8 +2,11 @@ from flask import Flask, render_template, redirect, url_for, request, session
 import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import os
+from flask import Flask
+
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 users = {
     "overseer": {

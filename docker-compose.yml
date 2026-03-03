@@ -1,16 +1,44 @@
 version: '3.9'
 
 services:
+  db:
+    image: mysql:8.0
+    container_name: fallout-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: vaultdb
+      MYSQL_USER: vaultuser
+      MYSQL_PASSWORD: vaultpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
   backend:
     build: ./backend
     container_name: fallout-backend
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USER: vaultuser
+      DB_PASSWORD: vaultpass
+      DB_NAME: vaultdb
     ports:
       - "5001:5001"
+    depends_on:
+      - db
 
   frontend:
     build: ./frontend
     container_name: fallout-frontend
+    restart: always
+    environment:
+      SECRET_KEY: supersecretkey
     ports:
       - "5000:5000"
     depends_on:
       - backend
+
+volumes:
+  db_data:

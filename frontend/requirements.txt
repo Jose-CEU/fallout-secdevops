@@ -1,3 +1,7 @@
 flask
 requests
 werkzeug
+flask-wtf
+flask
+flask-wtf
+pytest
