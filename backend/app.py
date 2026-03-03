@@ -15,7 +15,10 @@ def get_db_connection():
 # ✅ HEALTH CHECK (NO DB)
 @app.route("/api/status", methods=["GET"])
 def status():
-    return jsonify({"status": "ok"}), 200
+    return jsonify({
+        "status": "ok",
+        "version": "1.0.0"
+    }), 200
 
 
 # ✅ ENDPOINT REAL CON DB
