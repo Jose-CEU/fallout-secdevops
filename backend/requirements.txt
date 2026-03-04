@@ -2,3 +2,6 @@ flask
 mysql-connector-python
 pytest
 requests
+flask-jwt-extended
+flask-limiter
+flask-talisman
