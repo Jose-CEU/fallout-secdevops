@@ -1,23 +1,35 @@
 from flask import Flask, jsonify, request
 import mysql.connector
 import os
+import time
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
 # ----------------------------
-# DATABASE CONNECTION
+# DATABASE CONNECTION (WAIT FOR MYSQL)
 # ----------------------------
 def get_db_connection():
-    return mysql.connector.connect(
-        host=os.environ.get("DB_HOST"),
-        user=os.environ.get("DB_USER"),
-        password=os.environ.get("DB_PASSWORD"),
-        database=os.environ.get("DB_NAME")
-    )
+    retries = 5
+    while retries > 0:
+        try:
+            conn = mysql.connector.connect(
+                host=os.environ.get("DB_HOST"),
+                user=os.environ.get("DB_USER"),
+                password=os.environ.get("DB_PASSWORD"),
+                database=os.environ.get("DB_NAME")
+            )
+            return conn
+        except mysql.connector.Error as e:
+            print("Waiting for database...", str(e))
+            retries -= 1
+            time.sleep(5)
+
+    return None
+
 
 # ----------------------------
-# HEALTH CHECK (NO DB)
+# HEALTH CHECK
 # ----------------------------
 @app.route("/api/status", methods=["GET"])
 def status():
@@ -28,38 +40,48 @@ def status():
 
 
 # ----------------------------
-# VAULT STATUS (WITH DB)
+# VAULT STATUS
 # ----------------------------
 @app.route("/api/vault", methods=["GET"])
 def vault_status():
     conn = get_db_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS vault_status (
-            status VARCHAR(50),
-            radiation VARCHAR(50)
-        )
-    """)
+    if not conn:
+        return jsonify({"error": "Database unavailable"}), 500
 
-    cursor.execute("SELECT * FROM vault_status")
-    result = cursor.fetchone()
+    try:
+        cursor = conn.cursor()
 
-    if not result:
-        cursor.execute(
-            "INSERT INTO vault_status VALUES (%s, %s)",
-            ("Secure", "Low")
-        )
-        conn.commit()
-        result = ("Secure", "Low")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vault_status (
+                status VARCHAR(50),
+                radiation VARCHAR(50)
+            )
+        """)
 
-    cursor.close()
-    conn.close()
+        cursor.execute("SELECT * FROM vault_status")
+        result = cursor.fetchone()
 
-    return jsonify({
-        "vault_status": result[0],
-        "radiation_level": result[1]
-    })
+        if not result:
+            cursor.execute(
+                "INSERT INTO vault_status (status, radiation) VALUES (%s, %s)",
+                ("Secure", "Low")
+            )
+            conn.commit()
+            result = ("Secure", "Low")
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "vault_status": result[0],
+            "radiation_level": result[1]
+        }), 200
+
+    except mysql.connector.Error as e:
+        print("Vault error:", str(e))
+        conn.close()
+        return jsonify({"error": "Database error"}), 500
 
 
 # ----------------------------
@@ -67,41 +89,53 @@ def vault_status():
 # ----------------------------
 @app.route("/api/register", methods=["POST"])
 def register():
-    data = request.json
+    data = request.get_json()
 
     if not data or "username" not in data or "password" not in data:
         return jsonify({"error": "Missing username or password"}), 400
 
-    username = data["username"]
-    hashed_password = generate_password_hash(data["password"])
+    username = data["username"].strip()
+    password = data["password"]
+
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
 
     conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Crear tabla si no existe
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(100) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL
-        )
-    """)
+    if not conn:
+        return jsonify({"error": "Database unavailable"}), 500
 
     try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
+            )
+        """)
+
+        hashed_password = generate_password_hash(password)
+
         cursor.execute(
             "INSERT INTO users (username, password) VALUES (%s, %s)",
             (username, hashed_password)
         )
+
         conn.commit()
-    except mysql.connector.IntegrityError:
         cursor.close()
+        conn.close()
+
+        return jsonify({"message": "User created successfully"}), 201
+
+    except mysql.connector.IntegrityError:
         conn.close()
         return jsonify({"error": "User already exists"}), 409
 
-    cursor.close()
-    conn.close()
-
-    return jsonify({"message": "User created successfully"}), 201
+    except mysql.connector.Error as e:
+        print("Register error:", str(e))
+        conn.close()
+        return jsonify({"error": "Database error"}), 500
 
 
 # ----------------------------
@@ -109,27 +143,44 @@ def register():
 # ----------------------------
 @app.route("/api/login", methods=["POST"])
 def login():
-    data = request.json
+    data = request.get_json()
 
     if not data or "username" not in data or "password" not in data:
         return jsonify({"error": "Missing username or password"}), 400
 
-    username = data["username"]
+    username = data["username"].strip()
     password = data["password"]
 
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    if not conn:
+        return jsonify({"error": "Database unavailable"}), 500
 
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    user = cursor.fetchone()
+    try:
+        cursor = conn.cursor(dictionary=True)
 
-    cursor.close()
-    conn.close()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
+            )
+        """)
 
-    if user and check_password_hash(user["password"], password):
-        return jsonify({"message": "Login successful"}), 200
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
 
-    return jsonify({"error": "Invalid credentials"}), 401
+        cursor.close()
+        conn.close()
+
+        if user and check_password_hash(user["password"], password):
+            return jsonify({"message": "Login successful"}), 200
+
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    except mysql.connector.Error as e:
+        print("Login error:", str(e))
+        conn.close()
+        return jsonify({"error": "Database error"}), 500
 
 
 # ----------------------------

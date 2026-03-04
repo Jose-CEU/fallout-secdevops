@@ -16,7 +16,7 @@ services:
       - db_data:/var/lib/mysql
 
   backend:
-    build: .
+    build: ./backend
     container_name: vault_backend
     restart: always
     depends_on:
