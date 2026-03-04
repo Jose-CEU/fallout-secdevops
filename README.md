@@ -128,6 +128,86 @@ La diferenciación visual está implementada en `frontend/templates/dashboard.ht
 ```
 
 ---
+---
+
+## 📡 API Endpoints
+
+El backend expone los siguientes endpoints en `http://localhost:5001`:
+
+### GET /api/status
+Comprueba que el backend está activo.
+
+**Respuesta:**
+```json
+{
+  "status": "ok",
+  "version": "1.0.0"
+}
+```
+
+---
+
+### GET /api/vault
+Devuelve el estado actual del vault desde la base de datos.
+
+**Respuesta:**
+```json
+{
+  "vault_status": "Secure",
+  "radiation_level": "Low"
+}
+```
+
+---
+
+### POST /api/register
+Registra un nuevo usuario con rol `user`.
+
+**Body:**
+```json
+{
+  "username": "nuevo_usuario",
+  "password": "minimo6caracteres"
+}
+```
+
+**Respuestas:**
+| Código | Descripción |
+|---|---|
+| 201 | Usuario creado correctamente |
+| 400 | Faltan campos o contraseña muy corta |
+| 409 | El usuario ya existe |
+| 500 | Error de base de datos |
+
+---
+
+### POST /api/login
+Autentica un usuario y devuelve su rol.
+
+**Body:**
+```json
+{
+  "username": "overseer",
+  "password": "overseer_admin_2024"
+}
+```
+
+**Respuesta exitosa:**
+```json
+{
+  "message": "Login successful",
+  "username": "overseer",
+  "role": "admin"
+}
+```
+
+**Respuestas:**
+| Código | Descripción |
+|---|---|
+| 200 | Login correcto |
+| 400 | Faltan campos |
+| 401 | Credenciales incorrectas |
+| 500 | Error de base de datos |
 
 ## 🧪 Tests
 
