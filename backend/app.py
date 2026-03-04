@@ -7,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # ----------------------------
-# DATABASE CONNECTION (WAIT FOR MYSQL)
+# DATABASE CONNECTION
 # ----------------------------
 def get_db_connection():
     retries = 5
@@ -24,8 +24,53 @@ def get_db_connection():
             print("Waiting for database...", str(e))
             retries -= 1
             time.sleep(5)
-
     return None
+
+
+def init_db():
+    conn = get_db_connection()
+    if not conn:
+        return
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(20) NOT NULL DEFAULT 'user'
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vault_status (
+                status VARCHAR(50),
+                radiation VARCHAR(50)
+            )
+        """)
+
+        # Crear usuario admin por defecto si no existe
+        cursor.execute("SELECT * FROM users WHERE username = %s", ("overseer",))
+        if not cursor.fetchone():
+            cursor.execute(
+                "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                ("overseer", generate_password_hash("overseer_admin_2024"), "admin")
+            )
+
+        # Crear usuario normal por defecto si no existe
+        cursor.execute("SELECT * FROM users WHERE username = %s", ("dweller",))
+        if not cursor.fetchone():
+            cursor.execute(
+                "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+                ("dweller", generate_password_hash("dweller_user_2024"), "user")
+            )
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except mysql.connector.Error as e:
+        print("Init DB error:", str(e))
 
 
 # ----------------------------
@@ -45,20 +90,11 @@ def status():
 @app.route("/api/vault", methods=["GET"])
 def vault_status():
     conn = get_db_connection()
-
     if not conn:
         return jsonify({"error": "Database unavailable"}), 500
 
     try:
         cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS vault_status (
-                status VARCHAR(50),
-                radiation VARCHAR(50)
-            )
-        """)
-
         cursor.execute("SELECT * FROM vault_status")
         result = cursor.fetchone()
 
@@ -96,6 +132,11 @@ def register():
 
     username = data["username"].strip()
     password = data["password"]
+    role = data.get("role", "user")
+
+    # Solo se permiten roles válidos y nunca admin desde registro público
+    if role not in ["user"]:
+        role = "user"
 
     if len(password) < 6:
         return jsonify({"error": "Password must be at least 6 characters"}), 400
@@ -106,20 +147,11 @@ def register():
 
     try:
         cursor = conn.cursor()
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL
-            )
-        """)
-
         hashed_password = generate_password_hash(password)
 
         cursor.execute(
-            "INSERT INTO users (username, password) VALUES (%s, %s)",
-            (username, hashed_password)
+            "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
+            (username, hashed_password, role)
         )
 
         conn.commit()
@@ -157,15 +189,6 @@ def login():
 
     try:
         cursor = conn.cursor(dictionary=True)
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                username VARCHAR(100) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL
-            )
-        """)
-
         cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         user = cursor.fetchone()
 
@@ -173,7 +196,11 @@ def login():
         conn.close()
 
         if user and check_password_hash(user["password"], password):
-            return jsonify({"message": "Login successful"}), 200
+            return jsonify({
+                "message": "Login successful",
+                "username": user["username"],
+                "role": user["role"]
+            }), 200
 
         return jsonify({"error": "Invalid credentials"}), 401
 
@@ -186,5 +213,8 @@ def login():
 # ----------------------------
 # MAIN
 # ----------------------------
+with app.app_context():
+    init_db()
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)

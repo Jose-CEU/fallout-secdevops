@@ -1,14 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vault Login</title>
+    <title>Vault 33 — Access Terminal</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #00ff00;
+            font-family: monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .terminal {
+            border: 2px solid #00ff00;
+            padding: 40px;
+            width: 350px;
+            text-align: center;
+        }
+        h2 {
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #000;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            font-family: monospace;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        .error {
+            color: #ff4444;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Vault 33 Access</h2>
-    <form method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit">Enter Vault</button>
-    </form>
+    <div class="terminal">
+        <h2>⚡ VAULT 33 ⚡</h2>
+        <p>ROBCO INDUSTRIES UNIFIED OPERATING SYSTEM</p>
+        <p>ACCESS TERMINAL</p>
+
+        <form method="POST">
+            <input type="text" name="username" placeholder="ENTER USERNAME" required>
+            <input type="password" name="password" placeholder="ENTER PASSWORD" required>
+            <button type="submit">[ ENTER VAULT ]</button>
+        </form>
+
+        {% if error %}
+        <p class="error">⚠ {{ error }}</p>
+        {% endif %}
+    </div>
 </body>
 </html>
