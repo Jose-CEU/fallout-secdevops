@@ -85,10 +85,6 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-Captura del prompt con el entorno virtual activo:
-
-![Entorno virtual activo](./docs/venv-prompt.png)
-
 ---
 
 ## 🚀 Cómo ejecutar el proyecto
