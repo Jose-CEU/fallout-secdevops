@@ -29,5 +29,16 @@ services:
     ports:
       - "5001:5001"
 
+  frontend:
+    build: ./frontend
+    container_name: vault_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      SECRET_KEY: supersecretkey
+    ports:
+      - "5000:5000"
+
 volumes:
   db_data:
