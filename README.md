@@ -12,15 +12,18 @@
 - [Entorno de desarrollo](#entorno-de-desarrollo)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Autenticación y roles](#autenticación-y-roles)
+- [API Endpoints](#api-endpoints)
 - [Tests](#tests)
 - [CI/CD con GitHub Actions](#cicd-con-github-actions)
 - [Seguridad OWASP](#seguridad-owasp)
+- [Gestión de ramas](#gestión-de-ramas)
 
 ---
 
 ## 🏗️ Arquitectura
 
 El proyecto está dividido en tres servicios que se comunican entre sí mediante Docker:
+
 ```
 [Navegador] → [Frontend Flask :5000] → [Backend API Flask :5001] → [MySQL :3306]
 ```
@@ -34,6 +37,7 @@ El proyecto está dividido en tres servicios que se comunican entre sí mediante
 ---
 
 ## 📁 Estructura del proyecto
+
 ```
 fallout-secdevops/
 ├── .github/
@@ -57,6 +61,7 @@ fallout-secdevops/
 │       └── dashboard.html      # Panel principal (diferenciado por rol)
 ├── docs/
 │   └── venv-prompt.png         # Captura del entorno virtual activo
+├── .env.example                # Variables de entorno necesarias (sin valores reales)
 ├── docker-compose.yml          # Orquestación de los tres servicios
 ├── .gitignore                  # Excluye venv, .env, __pycache__
 ├── OWASP.md                    # Análisis de seguridad OWASP Web + API
@@ -68,6 +73,7 @@ fallout-secdevops/
 ## 💻 Entorno de desarrollo
 
 Se ha utilizado un **entorno virtual de Python (venv)** para aislar las dependencias del proyecto de otros entornos del sistema.
+
 ```bash
 # Crear el entorno virtual
 python -m venv venv
@@ -92,6 +98,7 @@ Captura del prompt con el entorno virtual activo:
 - Git
 
 ### Pasos
+
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/Jose-CEU/fallout-secdevops.git
@@ -111,7 +118,7 @@ Los tres contenedores se levantarán automáticamente: `vault_db`, `vault_backen
 ## 🔐 Autenticación y roles
 
 El sistema tiene dos tipos de usuario con comportamiento visual diferenciado.  
-La autenticación se gestiona en `frontend/app.py` mediante sesiones Flask con `SECRET_KEY` cargada desde variable de entorno.
+La autenticación se gestiona en `frontend/app.py` llamando al backend API, que valida credenciales contra MySQL y devuelve el rol.
 
 | Usuario | Contraseña | Rol | Fondo | Título |
 |---|---|---|---|---|
@@ -119,6 +126,7 @@ La autenticación se gestiona en `frontend/app.py` mediante sesiones Flask con `
 | `dweller` | `dweller_user_2024` | User | Verde oscuro `#003300` | Vault Terminal - Dweller |
 
 La diferenciación visual está implementada en `frontend/templates/dashboard.html`:
+
 ```html
 {% if role == "admin" %}
 <body style="background-color:#003366; color:white;">
@@ -127,7 +135,6 @@ La diferenciación visual está implementada en `frontend/templates/dashboard.ht
 {% endif %}
 ```
 
----
 ---
 
 ## 📡 API Endpoints
@@ -145,8 +152,6 @@ Comprueba que el backend está activo.
 }
 ```
 
----
-
 ### GET /api/vault
 Devuelve el estado actual del vault desde la base de datos.
 
@@ -157,8 +162,6 @@ Devuelve el estado actual del vault desde la base de datos.
   "radiation_level": "Low"
 }
 ```
-
----
 
 ### POST /api/register
 Registra un nuevo usuario con rol `user`.
@@ -171,15 +174,12 @@ Registra un nuevo usuario con rol `user`.
 }
 ```
 
-**Respuestas:**
 | Código | Descripción |
 |---|---|
 | 201 | Usuario creado correctamente |
 | 400 | Faltan campos o contraseña muy corta |
 | 409 | El usuario ya existe |
 | 500 | Error de base de datos |
-
----
 
 ### POST /api/login
 Autentica un usuario y devuelve su rol.
@@ -201,13 +201,14 @@ Autentica un usuario y devuelve su rol.
 }
 ```
 
-**Respuestas:**
 | Código | Descripción |
 |---|---|
 | 200 | Login correcto |
 | 400 | Faltan campos |
 | 401 | Credenciales incorrectas |
 | 500 | Error de base de datos |
+
+---
 
 ## 🧪 Tests
 
@@ -235,6 +236,7 @@ Requieren base de datos MySQL activa. Comprueban la comunicación entre componen
 | `test_login` | Login correcto devuelve HTTP 200 |
 
 ### Ejecutar tests manualmente
+
 ```bash
 cd backend
 pytest
@@ -251,6 +253,7 @@ El pipeline:
 1. Levanta un servicio MySQL en el runner
 2. Instala las dependencias de `backend/requirements.txt`
 3. Ejecuta todos los tests con `pytest`
+
 ```yaml
 on:
   push:
@@ -267,16 +270,14 @@ Se han revisado y aplicado medidas del **OWASP Top Ten de aplicaciones web** y d
 
 Ver análisis completo en [OWASP.md](./OWASP.md).
 
-Resumen de medidas aplicadas:
-
 | OWASP | Medida | Dónde |
 |---|---|---|
+| A01 Broken Access Control | Rutas protegidas redirigen a login | `frontend/app.py` |
 | A02 Cryptographic Failures | Contraseñas hasheadas con bcrypt | `backend/auth_service.py` |
 | A02 Cryptographic Failures | SECRET_KEY desde variable de entorno | `frontend/app.py`, `docker-compose.yml` |
 | A03 Injection | Queries parametrizadas con `%s` | `backend/app.py` |
 | A07 Auth Failures | Validación mínimo 6 caracteres | `backend/app.py` |
 | A07 Auth Failures | Logout limpia sesión completa | `frontend/app.py` |
-| A01 Broken Access Control | Rutas protegidas redirigen a login | `frontend/app.py` |
 
 ---
 
@@ -292,5 +293,9 @@ El proyecto sigue un flujo de trabajo con ramas de features y pull requests:
 | `feature/frontend-docker` | Dockerfile frontend y docker-compose completo |
 | `feature/owasp-docs` | Documentación OWASP |
 | `feature/tests` | Mejora y separación de tests |
-
 | `feature/readme-pro` | README profesional |
+| `feature/backend-roles` | Roles en MySQL y login real desde backend |
+| `feature/env-cleanup` | .env.example y limpieza requirements |
+| `feature/api-docs` | Documentación de endpoints API |
+| `fix/compose-env` | Credenciales docker-compose desde .env |
+| `fix/readme-final` | Correcciones finales del README |
