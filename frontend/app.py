@@ -24,7 +24,7 @@ def home():
     if "user" not in session:
         return redirect(url_for("login"))
 
-    response = requests.get("http://backend:5001/api/status")
+    response = requests.get("http://backend:5001/api/vault")
     data = response.json()
 
     return render_template(
