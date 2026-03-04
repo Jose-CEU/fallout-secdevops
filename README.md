@@ -115,8 +115,8 @@ La autenticación se gestiona en `frontend/app.py` mediante sesiones Flask con `
 
 | Usuario | Contraseña | Rol | Fondo | Título |
 |---|---|---|---|---|
-| `overseer` | `vault123` | Admin | Azul oscuro `#003366` | Vault Control Panel - Overseer |
-| `dweller` | `vault123` | User | Verde oscuro `#003300` | Vault Terminal - Dweller |
+| `overseer` | `overseer_admin_2024` | Admin | Azul oscuro `#003366` | Vault Control Panel - Overseer |
+| `dweller` | `dweller_user_2024` | User | Verde oscuro `#003300` | Vault Terminal - Dweller |
 
 La diferenciación visual está implementada en `frontend/templates/dashboard.html`:
 ```html
@@ -212,4 +212,5 @@ El proyecto sigue un flujo de trabajo con ramas de features y pull requests:
 | `feature/frontend-docker` | Dockerfile frontend y docker-compose completo |
 | `feature/owasp-docs` | Documentación OWASP |
 | `feature/tests` | Mejora y separación de tests |
+
 | `feature/readme-pro` | README profesional |
