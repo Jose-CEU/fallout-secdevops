@@ -10,15 +10,14 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 users = {
     "overseer": {
-        "password": generate_password_hash("vault123"),
+        "password": generate_password_hash("overseer_admin_2024"),
         "role": "admin"
     },
     "dweller": {
-        "password": generate_password_hash("vault123"),
+        "password": generate_password_hash("dweller_user_2024"),
         "role": "user"
     }
 }
-
 @app.route("/")
 def home():
     if "user" not in session:
