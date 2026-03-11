@@ -15,7 +15,7 @@
 - [API Endpoints](#api-endpoints)
 - [Tests](https://github.com/Jose-CEU/fallout-secdevops/tree/main/backend/tests)
 - [CI/CD con GitHub Actions](#cicd-con-github-actions)
-- [Seguridad OWASP](#seguridad-owasp)
+- [Seguridad OWASP](https://github.com/Jose-CEU/fallout-secdevops/blob/main/OWASP.md)
 - [Gestión de ramas](#gestión-de-ramas)
 
 ---
