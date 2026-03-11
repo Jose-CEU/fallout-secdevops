@@ -13,7 +13,7 @@
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Autenticación y roles](#autenticación-y-roles)
 - [API Endpoints](#api-endpoints)
-- [Tests](#tests)
+- [Tests](https://github.com/Jose-CEU/fallout-secdevops/tree/main/backend/tests)
 - [CI/CD con GitHub Actions](#cicd-con-github-actions)
 - [Seguridad OWASP](#seguridad-owasp)
 - [Gestión de ramas](#gestión-de-ramas)
