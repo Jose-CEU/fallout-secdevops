@@ -49,6 +49,7 @@ fallout-secdevops/
 │   ├── requirements.txt        # Dependencias del backend
 │   ├── Dockerfile              # Imagen Docker del backend
 │   └── tests/
+│       ├── conftest.py         # Configuración de pytest y PYTHONPATH
 │       ├── test_unit.py        # Tests unitarios (sin base de datos)
 │       ├── test_backend.py     # Tests de integración (con base de datos)
 │       └── test_auth.py        # Tests de autenticación
@@ -85,6 +86,10 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
+Captura del prompt con el entorno virtual activo:
+
+![Entorno virtual activo](./docs/venv-prompt.png)
+
 ---
 
 ## 🚀 Cómo ejecutar el proyecto
@@ -100,10 +105,13 @@ source venv/bin/activate
 git clone https://github.com/Jose-CEU/fallout-secdevops.git
 cd fallout-secdevops
 
-# 2. Levantar todos los servicios
+# 2. Crear el archivo .env con las variables de entorno
+cp .env.example .env
+
+# 3. Levantar todos los servicios
 docker-compose up --build
 
-# 3. Acceder a la aplicación
+# 4. Acceder a la aplicación
 http://localhost:5000
 ```
 
@@ -208,7 +216,8 @@ Autentica un usuario y devuelve su rol.
 
 ## 🧪 Tests
 
-Los tests están en `backend/tests/` y se ejecutan automáticamente en el pipeline de CI.
+Los tests están en `backend/tests/` y se ejecutan automáticamente en el pipeline de CI.  
+El archivo `conftest.py` configura el `PYTHONPATH` para que pytest encuentre los módulos correctamente.
 
 ### Tests unitarios (`test_unit.py`)
 No requieren base de datos. Comprueban funciones individuales:
@@ -221,21 +230,21 @@ No requieren base de datos. Comprueban funciones individuales:
 | `test_register_short_password` | Contraseña corta devuelve HTTP 400 |
 
 ### Tests de integración (`test_backend.py`, `test_auth.py`)
-Requieren base de datos MySQL activa. Comprueban la comunicación entre componentes:
+Requieren base de datos MySQL activa. Usan una fixture `setup_db` que crea las tablas automáticamente antes de cada test:
 
 | Test | Descripción |
 |---|---|
 | `test_api_status` | La API responde correctamente |
 | `test_register_and_login` | Registro de usuario y login exitoso |
 | `test_login_wrong_password` | Credenciales incorrectas devuelven HTTP 401 |
-| `test_register` | Registro devuelve HTTP 201 |
+| `test_register` | Registro devuelve HTTP 201 o 409 |
 | `test_login` | Login correcto devuelve HTTP 200 |
 
 ### Ejecutar tests manualmente
 
 ```bash
 cd backend
-pytest
+PYTHONPATH=. pytest tests/
 ```
 
 ---
@@ -248,7 +257,7 @@ Se ejecuta automáticamente en cada **push** y **pull request** a `main`.
 El pipeline:
 1. Levanta un servicio MySQL en el runner
 2. Instala las dependencias de `backend/requirements.txt`
-3. Ejecuta todos los tests con `pytest`
+3. Ejecuta todos los tests con `pytest tests/`
 
 ```yaml
 on:
@@ -295,3 +304,4 @@ El proyecto sigue un flujo de trabajo con ramas de features y pull requests:
 | `feature/api-docs` | Documentación de endpoints API |
 | `fix/compose-env` | Credenciales docker-compose desde .env |
 | `fix/readme-final` | Correcciones finales del README |
+| `fix/backend-db-connection` | Fix conexión DB y tests de integración |
