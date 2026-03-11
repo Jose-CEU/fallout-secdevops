@@ -10,7 +10,7 @@ app = Flask(__name__)
 # DATABASE CONNECTION
 # ----------------------------
 def get_db_connection():
-    retries = 5
+    retries = 10
     while retries > 0:
         try:
             conn = mysql.connector.connect(
@@ -23,13 +23,15 @@ def get_db_connection():
         except mysql.connector.Error as e:
             print("Waiting for database...", str(e))
             retries -= 1
-            time.sleep(5)
+            time.sleep(10)
     return None
 
 
 def init_db():
+    print("Initializing database...")
     conn = get_db_connection()
     if not conn:
+        print("Could not connect to database, skipping init.")
         return
     try:
         cursor = conn.cursor()
@@ -50,7 +52,6 @@ def init_db():
             )
         """)
 
-        # Crear usuario admin por defecto si no existe
         cursor.execute("SELECT * FROM users WHERE username = %s", ("overseer",))
         if not cursor.fetchone():
             cursor.execute(
@@ -58,7 +59,6 @@ def init_db():
                 ("overseer", generate_password_hash("overseer_admin_2024"), "admin")
             )
 
-        # Crear usuario normal por defecto si no existe
         cursor.execute("SELECT * FROM users WHERE username = %s", ("dweller",))
         if not cursor.fetchone():
             cursor.execute(
@@ -69,6 +69,7 @@ def init_db():
         conn.commit()
         cursor.close()
         conn.close()
+        print("Database initialized successfully.")
     except mysql.connector.Error as e:
         print("Init DB error:", str(e))
 
@@ -134,7 +135,6 @@ def register():
     password = data["password"]
     role = data.get("role", "user")
 
-    # Solo se permiten roles válidos y nunca admin desde registro público
     if role not in ["user"]:
         role = "user"
 
@@ -213,8 +213,6 @@ def login():
 # ----------------------------
 # MAIN
 # ----------------------------
-with app.app_context():
-    init_db()
-
 if __name__ == "__main__":
+    init_db()
     app.run(host="0.0.0.0", port=5001)
