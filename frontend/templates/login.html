@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}VAULT-TEC — ACCESO{% endblock %}
+
+{% block extra_style %}
+<style>
+.login-wrap { display:flex; justify-content:center; align-items:center; min-height:92vh; }
+.terminal {
+    width:100%; max-width:480px; padding:2.5rem;
+    border:2px solid #80ff00;
+    box-shadow:0 0 28px rgba(128,255,0,.25), inset 0 0 20px rgba(128,255,0,.02);
+}
+.terminal::before {
+    content:'▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓';
+    display:block; color:#1a3300; font-size:.58rem;
+    letter-spacing:1px; margin-bottom:1.5rem; overflow:hidden;
+}
+.logo { text-align:center; margin-bottom:.3rem; }
+.pip { font-size:3rem; line-height:1; animation:glow 3s ease-in-out infinite; }
+.vt-name { font-size:1.4rem; letter-spacing:6px; animation:glow 3s ease-in-out infinite; margin:.3rem 0 .1rem; }
+.vt-sub { font-size:.65rem; color:#4daa00; letter-spacing:3px; }
+hr { border:none; border-top:1px solid #2a4400; margin:1.2rem 0; }
+.boot { font-size:.63rem; color:#4daa00; margin-bottom:1.4rem; line-height:1.8; }
+.boot span { color:#80ff00; }
+.row { display:flex; align-items:center; gap:.5rem; margin-bottom:1rem; }
+.row label { margin:0; flex-shrink:0; white-space:nowrap; }
+.row input { flex:1; margin:0; }
+button.submit-btn {
+    width:100%; padding:.6rem; background:transparent;
+    border:2px solid #80ff00; color:#80ff00;
+    font-family:'Share Tech Mono',monospace; font-size:.9rem;
+    letter-spacing:3px; cursor:pointer;
+    transition:background .15s, color .15s;
+}
+button.submit-btn:hover { background:#80ff00; color:#0a0e00; }
+.demo-box {
+    margin-top:1.2rem; background:#0d1300; border:1px solid #1e3a00;
+    padding:.8rem 1rem; font-size:.68rem; color:#4daa00; line-height:1.8;
+}
+.demo-box strong { color:#80ff00; display:block; margin-bottom:.3rem; letter-spacing:1px; }
+code { background:#1a2a00; padding:.05rem .35rem; color:#80ff00; font-family:inherit; }
+.footer { margin-top:1.2rem; font-size:.58rem; color:#1a3300; text-align:center; letter-spacing:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+  <div class="terminal">
+    <div class="logo">
+      <div class="pip">⊙</div>
+      <div class="vt-name">VAULT-TEC</div>
+      <div class="vt-sub">UNIFIED OPERATING SYSTEM v1.0.2.6</div>
+    </div>
+    <hr>
+    <div class="boot">
+      COPYRIGHT 2075-2077 VAULT-TEC CORPORATION<br>
+      ALL RIGHTS RESERVED<br><br>
+      MEMORY: <span>640 KB OK</span><br>
+      TERMINAL: <span>RobCo Pip-Boy 3000A</span><br>
+      AUTH MODULE: <span>ACTIVE — bcrypt/JWT</span>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}" style="margin-bottom:1rem">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('login') }}" autocomplete="off">
+      <div class="row">
+        <label>C:\&gt;</label>
+        <input type="text" name="username" required maxlength="64"
+               autocomplete="username" placeholder="ENTER IDENTIFICATION">
+      </div>
+      <div class="row">
+        <label>C:\&gt;</label>
+        <input type="password" name="password" required maxlength="128"
+               autocomplete="current-password" placeholder="ENTER CLEARANCE CODE">
+      </div>
+      <button type="submit" class="submit-btn">[ AUTHENTICATE ] <span class="cur">█</span></button>
+    </form>
+
+    <div class="demo-box">
+      <strong>// CREDENCIALES DE PRUEBA</strong>
+      Overseer: <code>overseer</code> / <code>Overseer2077!</code><br>
+      Dweller:&nbsp; <code>dweller</code> / <code>Dweller2077!</code>
+    </div>
+
+    <div class="footer">
+      UNAUTHORIZED ACCESS WILL BE MET WITH LETHAL FORCE<br>
+      VAULT-TEC SECURITY PROTOCOL 7-ALPHA — MySQL + bcrypt
+    </div>
+  </div>
+</div>
+{% endblock %}

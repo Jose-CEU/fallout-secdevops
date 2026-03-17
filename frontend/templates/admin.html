@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}OVERSEER CONTROL — VAULT-TEC{% endblock %}
+{% block header_title %}☢ VAULT-TEC OS — OVERSEER PANEL{% endblock %}
+
+{% block extra_style %}
+<style>
+:root { --a:#ffb000; --a2:#ff8c00; --dim:#5a3a00; --bg:#0e0800; --bg2:#170f00; --bdr:#3a2500; --hbg:#1a1000; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+  <a href="{{ url_for('dashboard') }}" class="back-link">← TERMINAL</a>
+  <span style="font-size:.85rem;letter-spacing:3px;animation:glow 3s ease-in-out infinite">⚙ PANEL DE CONTROL DEL SUPERVISOR</span>
+</div>
+
+{% if stats %}
+<div class="grid-4">
+  <div class="stat-card"><div class="num">{{ stats.users }}</div><div class="label">RESIDENTES</div></div>
+  <div class="stat-card"><div class="num">{{ stats.projects }}</div><div class="label">DIRECTIVAS</div></div>
+  <div class="stat-card"><div class="num">{{ stats.audit_log_entries }}</div><div class="label">EVENTOS LOG</div></div>
+  <div class="stat-card" {% if stats.failed_logins_1h > 3 %}style="border-left:3px solid #ff4400"{% endif %}>
+    <div class="num" {% if stats.failed_logins_1h > 3 %}style="color:#ff4400"{% endif %}>{{ stats.failed_logins_1h }}</div>
+    <div class="label">FALLOS LOGIN (1H)</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="section-title">// RESIDENTES DEL VAULT ({{ users | length }})</div>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>RESIDENTE</th><th>ROL</th><th>ESTADO</th><th>REGISTRADO</th><th>ACCION</th></tr>
+    </thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td style="color:var(--dim)">#{{ u.id }}</td>
+      <td>{{ u.username | upper }}</td>
+      <td><span class="tag tag-{{ u.role }}">{{ u.role | upper }}</span></td>
+      <td><span class="tag {{ 'tag-on' if u.active else 'tag-off' }}">{{ 'ACTIVO' if u.active else 'INACTIVO' }}</span></td>
+      <td style="color:var(--dim);font-size:.73rem">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+      <td>
+        {% if u.username != session.username %}
+        <form method="POST" action="{{ url_for('toggle_user', user_id=u.id) }}" style="display:inline">
+          <button type="submit" class="btn btn-sm {{ 'btn-danger' if u.active else 'btn-success' }}">
+            {{ 'DESACTIVAR' if u.active else 'ACTIVAR' }}
+          </button>
+        </form>
+        {% else %}
+        <span style="color:var(--dim);font-size:.72rem">(YOU)</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="section-title">// LOG DE AUDITORIA — ULTIMAS 100 ENTRADAS</div>
+  <table>
+    <thead>
+      <tr><th>TIMESTAMP</th><th>RESIDENTE</th><th>ACCION</th><th>IP</th><th>DETALLE</th></tr>
+    </thead>
+    <tbody>
+    {% for log in logs %}
+    <tr>
+      <td style="font-size:.72rem;color:var(--dim);white-space:nowrap">{{ log.created_at }}</td>
+      <td style="font-size:.78rem">{{ log.username or '—' }}</td>
+      <td>
+        {% if 'failed' in (log.action or '') or 'blocked' in (log.action or '') or 'limited' in (log.action or '') %}
+        <span style="color:#ff4400;font-size:.75rem">✗ {{ log.action }}</span>
+        {% else %}
+        <span style="color:#80ff00;font-size:.75rem">✓ {{ log.action }}</span>
+        {% endif %}
+      </td>
+      <td style="font-size:.72rem;color:var(--dim)">{{ log.ip or '—' }}</td>
+      <td style="font-size:.72rem;color:var(--dim)">{{ log.detail or '' }}</td>
+    </tr>
+    {% endfor %}
+    {% if not logs %}
+    <tr><td colspan="5" style="text-align:center;color:var(--dim);padding:1.5rem;font-size:.75rem">SIN REGISTROS AUN</td></tr>
+    {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="prompt">AWAITING INPUT <span class="cur">█</span></div>
+{% endblock %}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VAULT-TEC OS{% endblock %}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --a:   #80ff00;
+            --a2:  #4dff00;
+            --dim: #2a4400;
+            --bg:  #0a0e00;
+            --bg2: #0d1300;
+            --bdr: #1e3a00;
+            --hbg: #0d1500;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            background: var(--bg);
+            color: var(--a);
+            min-height: 100vh;
+        }
+
+        /* CRT scanlines */
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px,
+                rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 4px);
+            pointer-events: none; z-index: 1000;
+        }
+
+        @keyframes flicker { 0%,91%,95%,100%{opacity:1} 92%,94%{opacity:.88} }
+        body { animation: flicker 12s infinite; }
+
+        @keyframes glow {
+            0%,100% { text-shadow: 0 0 5px var(--a); }
+            50%      { text-shadow: 0 0 14px var(--a), 0 0 28px var(--a2); }
+        }
+
+        /* ── HEADER ─────────────────────────────────────────────────── */
+        header {
+            background: var(--hbg);
+            border-bottom: 2px solid var(--a);
+            padding: .8rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: .5rem;
+        }
+        header h1 {
+            font-size: 1rem; letter-spacing: 3px;
+            animation: glow 3s ease-in-out infinite;
+        }
+        header nav a {
+            color: var(--dim); text-decoration: none;
+            margin-left: 1.2rem; font-size: .78rem; letter-spacing: 1px;
+            transition: color .15s;
+        }
+        header nav a:hover { color: var(--a); }
+        header nav a.danger { color: #cc3300; }
+        header nav a.danger:hover { color: #ff4400; }
+
+        .badge {
+            display: inline-block; padding: .15rem .7rem;
+            border: 1px solid var(--a); font-size: .68rem; letter-spacing: 2px;
+            margin-left: .5rem;
+        }
+        .badge-admin { border-color: #ffb000; color: #ffb000; }
+        .badge-user  { border-color: #80ff00; color: #80ff00; }
+
+        /* ── LAYOUT ─────────────────────────────────────────────────── */
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+
+        /* ── ALERTS ─────────────────────────────────────────────────── */
+        .alert {
+            padding: .65rem 1rem; margin-bottom: 1rem;
+            font-size: .78rem; letter-spacing: 1px; border-left: 3px solid;
+        }
+        .alert-error   { background: #1a0500; color: #ff6633; border-color: #ff4400; }
+        .alert-success { background: #001a00; color: #80ff00; border-color: #4dff00; }
+        .alert-info    { background: #00101a; color: #4dd9ff; border-color: #00aaff; }
+
+        /* ── CARDS ──────────────────────────────────────────────────── */
+        .card {
+            background: var(--bg2); border: 1px solid var(--bdr);
+            padding: 1.4rem 1.6rem; margin-bottom: 1.5rem;
+        }
+
+        /* ── BUTTONS ────────────────────────────────────────────────── */
+        .btn {
+            display: inline-block; padding: .4rem 1.1rem;
+            border: 1px solid var(--a); color: var(--a);
+            background: transparent; cursor: pointer;
+            font-family: 'Share Tech Mono', monospace; font-size: .78rem;
+            letter-spacing: 2px; text-decoration: none;
+            transition: background .15s, color .15s;
+        }
+        .btn:hover         { background: var(--a); color: var(--bg); }
+        .btn-primary       { border-color: var(--a); color: var(--a); }
+        .btn-danger        { border-color: #ff4400; color: #ff4400; }
+        .btn-danger:hover  { background: #ff4400; color: #0e0000; }
+        .btn-success       { border-color: #4dff00; color: #4dff00; }
+        .btn-success:hover { background: #4dff00; color: #000; }
+        .btn-sm            { padding: .2rem .6rem; font-size: .7rem; }
+
+        /* ── TABLES ─────────────────────────────────────────────────── */
+        table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+        thead tr { border-bottom: 1px solid var(--a); }
+        th {
+            text-align: left; padding: .5rem .8rem;
+            font-size: .62rem; letter-spacing: 2px; color: var(--dim);
+        }
+        td { padding: .5rem .8rem; border-bottom: 1px solid var(--bdr); }
+        tr:hover td { background: rgba(128,255,0,0.03); }
+
+        /* ── STAT CARDS ─────────────────────────────────────────────── */
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--bg); border: 1px solid var(--bdr); padding: 1rem 1.2rem; }
+        .stat-card .num   { font-size: 2rem; font-weight: 700; animation: glow 3s ease-in-out infinite; }
+        .stat-card .label { font-size: .6rem; color: var(--dim); letter-spacing: 2px; margin-top: .2rem; }
+
+        /* ── TAGS ───────────────────────────────────────────────────── */
+        .tag { display: inline-block; padding: .1rem .5rem; font-size: .7rem; border: 1px solid; }
+        .tag-admin      { border-color: #ffb000; color: #ffb000; }
+        .tag-user       { border-color: #80ff00; color: #80ff00; }
+        .tag-activo     { border-color: #4dff00; color: #4dff00; }
+        .tag-revision   { border-color: #ffb000; color: #ffb000; }
+        .tag-completado { border-color: var(--dim); color: var(--dim); }
+        .tag-cancelado  { border-color: #ff4400; color: #ff4400; }
+        .tag-on  { border-color: #4dff00; color: #4dff00; }
+        .tag-off { border-color: #ff4400; color: #ff4400; }
+
+        /* ── FORMS ──────────────────────────────────────────────────── */
+        label {
+            display: block; font-size: .72rem; color: var(--dim);
+            margin-bottom: .3rem; letter-spacing: 1px;
+        }
+        input[type=text], input[type=password], textarea, select {
+            width: 100%; padding: .55rem .8rem;
+            background: var(--bg); border: 1px solid var(--bdr); color: var(--a);
+            font-family: 'Share Tech Mono', monospace; font-size: .9rem; outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--a); box-shadow: 0 0 6px rgba(128,255,0,.3);
+        }
+        select option { background: var(--bg); }
+        textarea { resize: vertical; min-height: 90px; }
+
+        .section-title {
+            font-size: .72rem; color: var(--dim); letter-spacing: 3px;
+            border-bottom: 1px solid var(--bdr); padding-bottom: .3rem;
+            margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem;
+        }
+
+        /* back link */
+        .back-link { color: var(--a); text-decoration: none; font-size: .78rem; letter-spacing: 1px; }
+        .back-link:hover { text-decoration: underline; }
+
+        @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+        .cur { animation: blink 1s step-end infinite; }
+        .prompt { font-size: .68rem; color: var(--dim); margin-top: 1.5rem; letter-spacing: 1px; }
+        .prompt::before { content: 'C:\\> '; color: var(--a); }
+    </style>
+    {% block extra_style %}{% endblock %}
+</head>
+<body>
+
+{% if session.username %}
+<header>
+    <h1>
+        {% block header_title %}
+        {% if session.role == 'admin' %}☢ VAULT-TEC OS — OVERSEER{% else %}⊙ VAULT-TEC OS — DWELLER{% endif %}
+        {% endblock %}
+        <span class="badge badge-{{ session.role }}">{{ session.role | upper }}</span>
+    </h1>
+    <nav>
+        <span style="font-size:.75rem;color:var(--dim);letter-spacing:1px">{{ session.username | upper }}</span>
+        <a href="{{ url_for('dashboard') }}">TERMINAL</a>
+        {% if session.role == 'admin' %}
+        <a href="{{ url_for('admin') }}">ADMIN</a>
+        <a href="{{ url_for('new_project') }}">+ DIRECTIVA</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}" class="danger">LOGOUT</a>
+    </nav>
+</header>
+{% endif %}
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>

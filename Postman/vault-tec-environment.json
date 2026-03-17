@@ -1,0 +1,93 @@
+{
+  "id": "vault-tec-secdevops-environment",
+  "name": "☢️ Vault-Tec SecDevOps — LOCAL",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "default",
+      "enabled": true,
+      "description": "URL base del terminal frontal del Vault (frontend proxy). Cambia a http://localhost:5001 para llamar al mainframe directamente."
+    },
+    {
+      "key": "backend_url",
+      "value": "http://localhost:5001",
+      "type": "default",
+      "enabled": true,
+      "description": "URL directa al mainframe del Vault (backend API). Solo accesible si el puerto 5001 está expuesto."
+    },
+    {
+      "key": "overseer_username",
+      "value": "overseer",
+      "type": "default",
+      "enabled": true,
+      "description": "Nombre del residente administrador del Vault."
+    },
+    {
+      "key": "overseer_password",
+      "value": "Overseer2077!",
+      "type": "secret",
+      "enabled": true,
+      "description": "Contraseña del Overseer. Hasheada con bcrypt rounds=12 en MySQL."
+    },
+    {
+      "key": "dweller_username",
+      "value": "dweller",
+      "type": "default",
+      "enabled": true,
+      "description": "Nombre del residente usuario normal del Vault."
+    },
+    {
+      "key": "dweller_password",
+      "value": "Dweller2077!",
+      "type": "secret",
+      "enabled": true,
+      "description": "Contraseña del Dweller. Hasheada con bcrypt rounds=12 en MySQL."
+    },
+    {
+      "key": "overseer_token",
+      "value": "",
+      "type": "any",
+      "enabled": true,
+      "description": "JWT del Overseer (admin). Se rellena automáticamente al ejecutar P0 · Setup → Login overseer."
+    },
+    {
+      "key": "dweller_token",
+      "value": "",
+      "type": "any",
+      "enabled": true,
+      "description": "JWT del Dweller (user). Se rellena automáticamente al ejecutar P0 · Setup → Login dweller."
+    },
+    {
+      "key": "jwt_algorithm",
+      "value": "HS256",
+      "type": "default",
+      "enabled": true,
+      "description": "Algoritmo de firma de los tokens JWT del Vault."
+    },
+    {
+      "key": "jwt_expiration_hours",
+      "value": "1",
+      "type": "default",
+      "enabled": true,
+      "description": "Tiempo de expiración de los tokens JWT en horas."
+    },
+    {
+      "key": "rate_limit_max_attempts",
+      "value": "10",
+      "type": "default",
+      "enabled": true,
+      "description": "Número máximo de intentos de login por IP antes de activar el rate limiting (OWASP A07)."
+    },
+    {
+      "key": "rate_limit_window_minutes",
+      "value": "15",
+      "type": "default",
+      "enabled": true,
+      "description": "Ventana de tiempo en minutos para el rate limiting de login."
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2077-03-17T00:00:00.000Z",
+  "_postman_exported_using": "Vault-Tec SecDevOps / Postman"
+}

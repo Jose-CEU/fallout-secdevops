@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}{% if role=='admin' %}OVERSEER PANEL{% else %}DWELLER TERMINAL{% endif %} — VAULT-TEC{% endblock %}
+
+{% block extra_style %}
+<style>
+{% if role == 'admin' %}
+:root { --a:#ffb000; --a2:#ff8c00; --dim:#5a3a00; --bg:#0e0800; --bg2:#170f00; --bdr:#3a2500; --hbg:#1a1000; }
+{% endif %}
+.banner {
+    {% if role == 'admin' %}
+    border-left: 4px solid #ffb000; background: #170f00;
+    {% else %}
+    border-left: 4px solid #80ff00; background: #0d1300;
+    {% endif %}
+    padding: 1.2rem 1.5rem; margin-bottom: 1.5rem;
+}
+.banner h2 { font-size:1.2rem; letter-spacing:2px; animation:glow 3s ease-in-out infinite; }
+.banner p  { font-size:.75rem; color:var(--dim); margin-top:.4rem; letter-spacing:1px; }
+.admin-box { border: 1px dashed var(--a); }
+</style>
+{% endblock %}
+
+{% block header_title %}
+{% if role == 'admin' %}☢ VAULT-TEC OS — OVERSEER PANEL{% else %}⊙ VAULT-TEC OS — DWELLER TERMINAL{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="banner">
+  <h2>{% if role=='admin' %}☢ BIENVENIDO, SUPERVISOR {{ username|upper }}{% else %}⊙ ACCESO CONCEDIDO — {{ username|upper }}{% endif %}</h2>
+  <p>
+    {% if role == 'admin' %}ACCESO COMPLETO AL SISTEMA. GESTION DE RESIDENTES, DIRECTIVAS Y REGISTROS.
+    {% else %}ACCESO DE LECTURA. CONSULTA LAS DIRECTIVAS ACTIVAS DEL VAULT.{% endif %}
+  </p>
+</div>
+
+{% if role == 'admin' and stats %}
+<div class="grid-4">
+  <div class="stat-card">
+    <div class="num">{{ stats.users }}</div>
+    <div class="label">RESIDENTES</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ stats.projects }}</div>
+    <div class="label">DIRECTIVAS</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ stats.audit_log_entries }}</div>
+    <div class="label">EVENTOS LOG</div>
+  </div>
+  <div class="stat-card" {% if stats.failed_logins_1h > 3 %}style="border-left:3px solid #ff4400"{% endif %}>
+    <div class="num" {% if stats.failed_logins_1h > 3 %}style="color:#ff4400"{% endif %}>{{ stats.failed_logins_1h }}</div>
+    <div class="label">FALLOS LOGIN (1H)</div>
+  </div>
+</div>
+{% else %}
+<div class="grid-3">
+  <div class="stat-card">
+    <div class="num">{{ projects | length }}</div>
+    <div class="label">DIRECTIVAS</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ projects | selectattr('status','equalto','activo') | list | length }}</div>
+    <div class="label">ACTIVAS</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ role | upper }}</div>
+    <div class="label">NIVEL ACCESO</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="section-title">
+    // DIRECTIVAS DEL VAULT
+    {% if role == 'admin' %}
+    <a href="{{ url_for('new_project') }}" class="btn btn-sm" style="margin-left:auto">+ NUEVA</a>
+    {% endif %}
+  </div>
+  {% if projects %}
+  <table>
+    <thead>
+      <tr><th>#</th><th>NOMBRE</th><th>DESCRIPCION</th><th>ESTADO</th><th>RESPONSABLE</th><th>FECHA</th></tr>
+    </thead>
+    <tbody>
+    {% for p in projects %}
+    <tr>
+      <td style="color:var(--dim)">#{{ p.id }}</td>
+      <td>{{ p.name }}</td>
+      <td style="color:var(--dim);font-size:.75rem">{{ p.description or '—' }}</td>
+      <td>
+        <span class="tag tag-{{ p.status | replace(' ','') | replace('enrevisión','revision') }}">
+          {{ p.status | upper }}
+        </span>
+      </td>
+      <td style="font-size:.78rem">{{ p.owner or '—' }}</td>
+      <td style="color:var(--dim);font-size:.73rem">{{ p.created_at[:10] if p.created_at else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--dim);text-align:center;padding:1.5rem;font-size:.78rem">SIN DIRECTIVAS EN LA BASE DE DATOS.</p>
+  {% endif %}
+</div>
+
+{% if role == 'admin' %}
+<div class="card admin-box">
+  <div class="section-title">// HERRAMIENTAS DEL SUPERVISOR</div>
+  <div style="display:flex;gap:1rem;flex-wrap:wrap">
+    <a href="{{ url_for('admin') }}"       class="btn">GESTIONAR RESIDENTES</a>
+    <a href="{{ url_for('new_project') }}" class="btn">CREAR DIRECTIVA</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="prompt">AWAITING INPUT <span class="cur">█</span></div>
+{% endblock %}

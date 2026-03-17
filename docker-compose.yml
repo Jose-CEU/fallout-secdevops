@@ -1,0 +1,89 @@
+# =============================================================================
+# VAULT-TEC SecDevOps — Docker Compose
+# Misma arquitectura que el proyecto de referencia:
+#   mysql    — MySQL 8 (solo red interna, NO expuesto al host)
+#   backend  — API REST Flask + bcrypt + JWT (solo red interna)
+#   frontend — Flask UI (único puerto expuesto: 5000)
+#
+# Red interna 'appnet': los tres servicios se comunican por nombre.
+# Desde fuera solo es accesible el frontend en el puerto 5000.
+# =============================================================================
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: vault-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE:-vault}
+      MYSQL_USER:          ${MYSQL_USER:-vaultuser}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-vaultpassword}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - appnet
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "root", "--password=${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vault-backend
+    environment:
+      SECRET_KEY:     ${SECRET_KEY:-changeme_use_random_32_hex_in_prod}
+      MYSQL_HOST:     mysql
+      MYSQL_PORT:     3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-vault}
+      MYSQL_USER:     ${MYSQL_USER:-vaultuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-vaultpassword}
+    networks:
+      - appnet
+    expose:
+      - "5001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5001/api/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vault-frontend
+    environment:
+      BACKEND_URL:      http://backend:5001
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:-changeme_flask_secret}
+      HTTPS:            "false"
+    ports:
+      - "5000:5000"
+    networks:
+      - appnet
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  appnet:
+    driver: bridge

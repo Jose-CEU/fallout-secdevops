@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}NUEVA DIRECTIVA — VAULT-TEC{% endblock %}
+{% block header_title %}☢ VAULT-TEC OS — OVERSEER PANEL{% endblock %}
+
+{% block extra_style %}
+<style>
+:root { --a:#ffb000; --a2:#ff8c00; --dim:#5a3a00; --bg:#0e0800; --bg2:#170f00; --bdr:#3a2500; --hbg:#1a1000; }
+.form-card { max-width: 620px; margin: 0 auto; }
+.form-group { margin-bottom: 1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+  <a href="{{ url_for('dashboard') }}" class="back-link">← TERMINAL</a>
+  <span style="font-size:.85rem;letter-spacing:3px;animation:glow 3s ease-in-out infinite">// CREAR NUEVA DIRECTIVA</span>
+</div>
+
+<div class="card form-card">
+  <form method="POST" action="{{ url_for('new_project') }}">
+    <div class="form-group">
+      <label>NOMBRE DE LA DIRECTIVA *</label>
+      <input type="text" name="name" required maxlength="128"
+             placeholder="Ej: PROTOCOLO SEGURIDAD OMEGA">
+    </div>
+    <div class="form-group">
+      <label>DESCRIPCION</label>
+      <textarea name="description" maxlength="500"
+                placeholder="Describe el objetivo de la directiva..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>ESTADO INICIAL</label>
+      <select name="status">
+        <option value="activo">ACTIVO</option>
+        <option value="en revisión">EN REVISION</option>
+        <option value="completado">COMPLETADO</option>
+        <option value="cancelado">CANCELADO</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:1rem;align-items:center">
+      <button type="submit" class="btn">[ REGISTRAR EN MySQL ] <span class="cur">█</span></button>
+      <a href="{{ url_for('dashboard') }}" style="color:var(--dim);font-size:.78rem;letter-spacing:1px">CANCELAR</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

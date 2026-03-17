@@ -1,0 +1,1236 @@
+{
+  "info": {
+    "name": "Vault-Tec SecDevOps — API Tests",
+    "description": "Colección de pruebas funcionales y de seguridad para la API de Vault-Tec SecDevOps.\n\nEstructura:\n  P0 · Setup          — obtiene tokens y los guarda en variables\n  P1 · Autenticación  — A07: credenciales, rate limit, JWT\n  P2 · Acceso RBAC    — A01: roles overseer/dweller\n  P3 · Directivas     — CRUD de proyectos desde MySQL\n  P4 · Administración — usuarios, logs, estadísticas\n  P5 · Seguridad HTTP — A05: cabeceras OWASP\n  P6 · Smoke tests    — flujo feliz end-to-end\n\nVariables de colección:\n  base_url       → http://localhost:5000  (frontend proxy)\n  overseer_token → (auto) JWT del overseer\n  dweller_token  → (auto) JWT del dweller",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "overseer_token",
+      "value": ""
+    },
+    {
+      "key": "dweller_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "P0 · Setup — obtener tokens",
+      "description": "Ejecutar primero. Guarda los tokens JWT en variables de colección.",
+      "item": [
+        {
+          "name": "Login overseer → guardar token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"overseer\",\"password\":\"Overseer2077!\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Setup] Login overseer: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Setup] Token JWT presente', () => pm.expect(j.token).to.be.a('string').and.have.lengthOf.above(10));",
+                  "pm.test('[Setup] Rol admin confirmado', () => pm.expect(j.role).to.eql('admin'));",
+                  "if (j.token) pm.environment.set('overseer_token', j.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login dweller → guardar token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"dweller\",\"password\":\"Dweller2077!\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Setup] Login dweller: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Setup] Rol user confirmado', () => pm.expect(j.role).to.eql('user'));",
+                  "if (j.token) pm.environment.set('dweller_token', j.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P1 · Autenticación — A07",
+      "description": "Identification and Authentication Failures: credenciales, rate limiting, JWT tampering.",
+      "item": [
+        {
+          "name": "🟠 Body vacío → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A08] Body vacío → 400', () => pm.response.to.have.status(400));",
+                  "pm.test('[A08] Campo error presente', () => pm.expect(pm.response.json()).to.have.property('error'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 Sin token → 401",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A07] Sin Authorization header → 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 JWT manipulado rechazado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoib3ZlcnNlZXIiLCJyb2xlIjoiYWRtaW4ifQ.firma_falsa_vault_tec"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A02/A07] JWT con firma falsa rechazado (401/422)', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401, 422]);",
+                  "});",
+                  "pm.test('[A07] No se filtran datos de residentes', () => pm.expect(pm.response.json()).to.not.have.property('users'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 Credenciales incorrectas → 401 con mensaje genérico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"overseer\",\"password\":\"WrongPassword99\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A07] 401 con password incorrecto', () => pm.response.to.have.status(401));",
+                  "pm.test('[A07] Sin token en respuesta fallida', () => pm.expect(pm.response.json()).to.not.have.property('token'));",
+                  "pm.test('[A07] Mensaje genérico — no revela existencia del usuario', () => {",
+                  "  const err = pm.response.json().error.toLowerCase();",
+                  "  pm.expect(err).to.not.include('not found');",
+                  "  pm.expect(err).to.not.include('no existe');",
+                  "});",
+                  "pm.test('[A02] Sin hash bcrypt en respuesta', () => {",
+                  "  const body = pm.response.text();",
+                  "  pm.expect(body).to.not.include('$2b$');",
+                  "  pm.expect(body).to.not.include('bcrypt');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 Usuario inexistente → mismo 401 que password incorrecto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"ghost_resident_xyz\",\"password\":\"AnyPass1\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A07] 401 para usuario inexistente (sin user oracle)', () => pm.response.to.have.status(401));",
+                  "pm.test('[A07] Respuesta < 5s (sin timing oracle)', () => pm.expect(pm.response.responseTime).to.be.below(5000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟠 Rate limiting — simula brute force",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"victim_resident\",\"password\":\"Wrong1\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Ejecutar con Runner 10 iteraciones para provocar 429",
+                  "pm.test('[A07] Servidor no devuelve 500 bajo intentos repetidos', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401, 429]);",
+                  "});",
+                  "if (pm.response.code === 429) {",
+                  "  pm.test('[A07] 429 con mensaje de rate limit', () => {",
+                  "    pm.expect(pm.response.json().error).to.include('intentos');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P2 · Control de Acceso RBAC — A01",
+      "description": "Broken Access Control: verifica que cada endpoint requiere el rol correcto.",
+      "item": [
+        {
+          "name": "🔴 /api/admin/users — dweller → 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Dweller no accede a lista de residentes → 403', () => pm.response.to.have.status(403));",
+                  "pm.test('[A01] Sin datos de usuarios en respuesta', () => pm.expect(pm.response.json()).to.not.have.property('users'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 /api/admin/logs — dweller → 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "logs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Dweller no puede ver logs de auditoría → 403', () => pm.response.to.have.status(403));",
+                  "pm.test('[A01] Sin datos de logs en respuesta', () => pm.expect(pm.response.json()).to.not.have.property('logs'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 POST /api/projects — dweller → 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Directiva No Autorizada\",\"status\":\"activo\"}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Dweller no puede crear directivas → 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟢 Overseer lista residentes — sin password_hash",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Overseer accede a residentes: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[A08] Array de residentes presente', () => pm.expect(j.users).to.be.an('array'));",
+                  "pm.test('[A02/A08] Ningún residente expone password_hash', () => {",
+                  "  j.users.forEach(u => {",
+                  "    pm.expect(u).to.not.have.property('password_hash');",
+                  "    pm.expect(u).to.not.have.property('password');",
+                  "  });",
+                  "});",
+                  "pm.test('[A08] Campos permitidos: id,username,role,active,created_at', () => {",
+                  "  const allowed = new Set(['id','username','role','active','created_at']);",
+                  "  j.users.forEach(u => {",
+                  "    Object.keys(u).forEach(k => pm.expect(allowed.has(k), `Campo inesperado: ${k}`).to.be.true);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟢 Dweller puede leer directivas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Dweller puede leer directivas: 200', () => pm.response.to.have.status(200));",
+                  "pm.test('[A01] Array de directivas presente', () => pm.expect(pm.response.json().projects).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟢 Perfil overseer — datos correctos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Perfil overseer: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[A01] Username correcto', () => pm.expect(j.username).to.eql('overseer'));",
+                  "pm.test('[A01] Rol admin', () => pm.expect(j.role).to.eql('admin'));",
+                  "pm.test('[A08] Sin password_hash en perfil', () => {",
+                  "  pm.expect(j).to.not.have.property('password_hash');",
+                  "  pm.expect(j).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P3 · Directivas (Proyectos) — MySQL",
+      "description": "CRUD completo de directivas. Los datos vienen de MySQL, no de listas estáticas.",
+      "item": [
+        {
+          "name": "🟢 Listar directivas con token dweller",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Func] Lista de directivas: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Func] Contiene proyectos de MySQL', () => pm.expect(j.projects).to.be.an('array'));",
+                  "pm.test('[Func] Campo total presente', () => pm.expect(j).to.have.property('total'));",
+                  "if (j.projects.length > 0) {",
+                  "  pm.test('[Func] Estructura de directiva correcta', () => {",
+                  "    const p = j.projects[0];",
+                  "    pm.expect(p).to.have.property('id');",
+                  "    pm.expect(p).to.have.property('name');",
+                  "    pm.expect(p).to.have.property('status');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟢 Overseer crea directiva nueva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Directiva Postman Test\",\"description\":\"Creada desde Postman\",\"status\":\"activo\"}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Func] Directiva creada: 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Func] ID asignado por MySQL', () => pm.expect(j.id).to.be.a('number'));",
+                  "pm.test('[Func] Mensaje de confirmación', () => pm.expect(j.message).to.include('creado'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟠 Crear directiva sin nombre → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"description\":\"Sin nombre obligatorio\"}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A08] Sin nombre → 400', () => pm.response.to.have.status(400));",
+                  "pm.test('[A08] Campo error presente', () => pm.expect(pm.response.json()).to.have.property('error'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟠 Crear directiva con estado inválido → 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\":\"Test\",\"status\":\"estado_inventado\"}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A08] Estado inválido → 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P4 · Administración — A01/A09",
+      "description": "Endpoints de administración: usuarios, logs de auditoría y estadísticas.",
+      "item": [
+        {
+          "name": "🟢 Overseer obtiene estadísticas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A09] Stats overseer: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[A09] Contiene métricas del sistema', () => {",
+                  "  pm.expect(j).to.have.property('users');",
+                  "  pm.expect(j).to.have.property('projects');",
+                  "  pm.expect(j).to.have.property('audit_log_entries');",
+                  "  pm.expect(j).to.have.property('failed_logins_1h');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟢 Overseer obtiene logs de auditoría",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "logs"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A09] Logs overseer: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[A09] Array de logs presente', () => pm.expect(j.logs).to.be.an('array'));",
+                  "pm.test('[A09] Logs no contienen passwords', () => {",
+                  "  const body = pm.response.text();",
+                  "  pm.expect(body).to.not.include('password_hash');",
+                  "  pm.expect(body).to.not.include('$2b$');",
+                  "});",
+                  "if (j.logs.length > 0) {",
+                  "  pm.test('[A09] Estructura de log correcta', () => {",
+                  "    const l = j.logs[0];",
+                  "    pm.expect(l).to.have.property('username');",
+                  "    pm.expect(l).to.have.property('action');",
+                  "    pm.expect(l).to.have.property('ip');",
+                  "    pm.expect(l).to.have.property('created_at');",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟠 Stats sin token → 401",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Stats sin token → 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🟠 Stats dweller → 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "stats"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A01] Stats dweller → 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P5 · Seguridad HTTP — A05",
+      "description": "Security Misconfiguration: verifica cabeceras OWASP en todas las respuestas.",
+      "item": [
+        {
+          "name": "🔴 Cabeceras OWASP en /api/health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A05] X-Frame-Options: DENY', () => pm.expect(pm.response.headers.get('X-Frame-Options')).to.eql('DENY'));",
+                  "pm.test('[A05] X-Content-Type-Options: nosniff', () => pm.expect(pm.response.headers.get('X-Content-Type-Options')).to.eql('nosniff'));",
+                  "pm.test('[A05] X-XSS-Protection presente', () => pm.expect(pm.response.headers.get('X-XSS-Protection')).to.exist);",
+                  "pm.test('[A05] Cache-Control: no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));",
+                  "pm.test('[A05] Content-Security-Policy presente', () => {",
+                  "  const csp = pm.response.headers.get('Content-Security-Policy') || '';",
+                  "  pm.expect(csp).to.include('default-src');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 404 devuelve JSON sin stack trace",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/ruta_inexistente_vault",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "ruta_inexistente_vault"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A05] 404 controlado', () => pm.response.to.have.status(404));",
+                  "pm.test('[A05] Sin Traceback Python en respuesta', () => {",
+                  "  const body = pm.response.text();",
+                  "  pm.expect(body).to.not.include('Traceback');",
+                  "  pm.expect(body).to.not.include('File \"/');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "🔴 Inyección SQL en login bloqueada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"overseer' OR '1'='1' -- \",\"password\":\"x\"}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[A03] SQLi no hace bypass de autenticación', () => pm.expect(pm.response.code).to.not.equal(200));",
+                  "pm.test('[A03] Sin error SQL en respuesta', () => {",
+                  "  const body = pm.response.text();",
+                  "  pm.expect(body).to.not.include('SQL');",
+                  "  pm.expect(body).to.not.include('mysql');",
+                  "  pm.expect(body).to.not.include('Traceback');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "P6 · Smoke Tests — flujo feliz",
+      "description": "Pruebas funcionales básicas: health, login, directivas, perfil.",
+      "item": [
+        {
+          "name": "Health check — sistema operativo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Smoke] 200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Smoke] Status ok', () => pm.expect(j.status).to.eql('ok'));",
+                  "pm.test('[Smoke] DB MySQL ok', () => pm.expect(j.database).to.eql('ok'));",
+                  "pm.test('[Smoke] Motor MySQL 8', () => pm.expect(j.engine).to.include('MySQL'));",
+                  "pm.test('[Smoke] Respuesta < 1s', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Perfil dweller — lectura de datos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{dweller_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Smoke] Perfil: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Smoke] Username dweller', () => pm.expect(j.username).to.eql('dweller'));",
+                  "pm.test('[Smoke] Rol user', () => pm.expect(j.role).to.eql('user'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Directivas — overseer ve todas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{overseer_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Smoke] Directivas desde MySQL: 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('[Smoke] Al menos 1 directiva en la DB', () => pm.expect(j.total).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const baseUrl = pm.environment.get('base_url') || 'http://localhost:5000';",
+          "",
+          "function autoLogin(username, password, tokenKey, cb) {",
+          "    pm.sendRequest({",
+          "        url: baseUrl + '/api/login',",
+          "        method: 'POST',",
+          "        header: [{ key: 'Content-Type', value: 'application/json' }],",
+          "        body: { mode: 'raw', raw: JSON.stringify({ username, password }) }",
+          "    }, (err, res) => {",
+          "        if (!err && res && res.code === 200) {",
+          "            const token = res.json().token;",
+          "            pm.environment.set(tokenKey, token);",
+          "            pm.collectionVariables.set(tokenKey, token);",
+          "        }",
+          "        if (cb) cb();",
+          "    });",
+          "}",
+          "",
+          "const ot = pm.environment.get('overseer_token');",
+          "const dt = pm.environment.get('dweller_token');",
+          "if (!ot || ot.length < 10) {",
+          "    autoLogin('overseer', 'Overseer2077!', 'overseer_token', () => {",
+          "        if (!dt || dt.length < 10) autoLogin('dweller', 'Dweller2077!', 'dweller_token');",
+          "    });",
+          "} else if (!dt || dt.length < 10) {",
+          "    autoLogin('dweller', 'Dweller2077!', 'dweller_token');",
+          "}"
+        ]
+      }
+    }
+  ]
+}
